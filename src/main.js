@@ -210,7 +210,6 @@ export default async function main () {
 		// Смена направления движения.
 		changeDirection(pacman)
 		ghosts.forEach(changeDirection)
-console.log('ghosts: ', ghosts);
 
 		// Стена, с которой может столкнуться пакман на следующей итерации.
 		const wall = getWallCollision(pacman.getNextPosition())
