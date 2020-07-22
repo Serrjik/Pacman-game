@@ -20,7 +20,7 @@ export default async function main () {
 	document.body.append(game.canvas)
 
 	const image = await loadImage('./sets/spritesheet.png')
-	const atlas = await loadJSON('/sets/atlas.json')
+	const atlas = await loadJSON('./sets/atlas.json')
 
 	// Лабиринт.
 	const maze = new Sprite({
