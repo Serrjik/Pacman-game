@@ -4,6 +4,8 @@ import Sprite from './Sprite.js';
 import Cinematic from './Cinematic.js';
 import { haveCollision, getRandomFrom } from './Additional.js';
 import DisplayObject from './DisplayObject.js';
+import Group from './Group.js';
+import Text from './Text.js';
 
 // Масштаб отрисовки игры.
 const scale = 3
@@ -13,9 +15,28 @@ export default async function main () {
 	const game = new Game({
 		// Ширина и высота игрового поля.
 		width: 672,
-		height: 744,
+		height: 794, // 744 + 50
 		background: 'black'
 	})
+
+	// Игровое поле с объектами игры.
+	const party = new Group
+	party.offsetY = 50
+
+	game.stage.add(party)
+
+	// Состояние игры (для отображения очков).
+	const status = new Text({
+		x: game.canvas.width / 2,
+		y: 40,
+		content: "0 очков",
+		fill: '#ffb7ae'
+	})
+
+	// Очки.
+	status.points = 0
+
+	game.stage.add(status)
 
 	document.body.append(game.canvas)
 
@@ -32,7 +53,7 @@ export default async function main () {
 		frame: atlas.maze
 	})
 	game.canvas.width = maze.width
-	game.canvas.height = maze.height
+	game.canvas.height = maze.height + 50
 
 	// Еда.
 	let foods = atlas.maze.foods
@@ -120,14 +141,14 @@ export default async function main () {
 			height: tablet.height * scale
 		}))
 
-	game.stage.add(maze)
-	foods.forEach(food => game.stage.add(food))
-	game.stage.add(pacman)
-	ghosts.forEach(ghost => game.stage.add(ghost))
-	walls.forEach(wall => game.stage.add(wall))
-	game.stage.add(leftPortal)
-	game.stage.add(rightPortal)
-	tablets.forEach(tablet => game.stage.add(tablet))
+	party.add(maze)
+	foods.forEach(food => party.add(food))
+	party.add(pacman)
+	ghosts.forEach(ghost => party.add(ghost))
+	walls.forEach(wall => party.add(wall))
+	party.add(leftPortal)
+	party.add(rightPortal)
+	tablets.forEach(tablet => party.add(tablet))
 
 	game.update = () => {
 		// Съеденная еда.
@@ -138,7 +159,9 @@ export default async function main () {
 			if (haveCollision(pacman, food)) {
 				// Съесть еду.
 				eated.push(food)
-				game.stage.remove(food)
+				party.remove(food)
+				status.points += 100
+				status.content = `${status.points} очков`
 			}
 		}
 
@@ -149,7 +172,7 @@ export default async function main () {
 		for (const ghost of ghosts) {
 			// Если привидение уже съедено:
 			if (!ghost.play) {
-				ghosts = ghosts.filter(ghost => ghost.play)
+				// ghosts = ghosts.filter(ghost => ghost.play)
 
 				return
 			}
@@ -163,24 +186,47 @@ export default async function main () {
 				ghost.speedY = 0
 			}
 
-			if (ghost.speedX === 0 && ghost.speedY === 0) {
-				// Назначить привидению новое направление движения.
-				if (ghost.animation.name === 'up') {
-					ghost.nextDirection = getRandomFrom('left', 'right', 'down')
+			// Если столкновения привидения со стеной пока нет:
+			// else {
+				if ((ghost.speedX === 0 && ghost.speedY === 0) || 
+				Math.random() > 0.95) {
+					// Назначить привидению новое направление движения.
+					if (ghost.animation.name === 'up') {
+						ghost.nextDirection = getRandomFrom('left', 'right')
+					}
+		
+					else if (ghost.animation.name === 'down') {
+						ghost.nextDirection = getRandomFrom('left', 'right')
+					}
+		
+					else if (ghost.animation.name === 'left') {
+						ghost.nextDirection = getRandomFrom('down', 'up')
+					}
+		
+					else if (ghost.animation.name === 'right') {
+						ghost.nextDirection = getRandomFrom('down', 'up')
+					}
 				}
+			// }
+
+			// if (ghost.speedX === 0 && ghost.speedY === 0) {
+			// 	// Назначить привидению новое направление движения.
+			// 	if (ghost.animation.name === 'up') {
+			// 		ghost.nextDirection = getRandomFrom('left', 'right', 'down')
+			// 	}
 	
-				else if (ghost.animation.name === 'down') {
-					ghost.nextDirection = getRandomFrom('left', 'right', 'up')
-				}
+			// 	else if (ghost.animation.name === 'down') {
+			// 		ghost.nextDirection = getRandomFrom('left', 'right', 'up')
+			// 	}
 	
-				else if (ghost.animation.name === 'left') {
-					ghost.nextDirection = getRandomFrom('down', 'right', 'up')
-				}
+			// 	else if (ghost.animation.name === 'left') {
+			// 		ghost.nextDirection = getRandomFrom('down', 'right', 'up')
+			// 	}
 	
-				else if (ghost.animation.name === 'right') {
-					ghost.nextDirection = getRandomFrom('left', 'down', 'up')
-				}
-			}
+			// 	else if (ghost.animation.name === 'right') {
+			// 		ghost.nextDirection = getRandomFrom('left', 'down', 'up')
+			// 	}
+			// }
 
 			// Если привидение столкнулось с пакманом:
 			if (pacman.play && ghost.play && haveCollision(pacman, ghost)) {
@@ -189,7 +235,11 @@ export default async function main () {
 					ghost.play = false
 					ghost.speedX = 0
 					ghost.speedY = 0
-					game.stage.remove(ghost)
+					party.remove(ghost)
+					ghosts.splice(ghosts.indexOf(ghost), 1)
+
+					status.points += 5000
+					status.content = `${status.points} очков`
 				}
 
 				// Если пакман НЕ может съесть привидение:
@@ -200,10 +250,20 @@ export default async function main () {
 						onEnd () {
 							pacman.play = false
 							pacman.stop()
-							game.stage.remove(pacman)
+							party.remove(pacman)
 						}
 					})
 				}
+			}
+
+			// Если привидение вошло в левый портал:
+			if (haveCollision(ghost, leftPortal)) {
+				ghost.x = atlas.position.rightPortal.x * scale - ghost.width - 1
+			}
+
+			// Если привидение вошло в правый портал:
+			if (haveCollision(ghost, rightPortal)) {
+				ghost.x = atlas.position.leftPortal.x * scale + ghost.width + 1
 			}
 		}
 
@@ -236,7 +296,7 @@ export default async function main () {
 
 			if (haveCollision(pacman, tablet)) {
 				tablets.splice(i, 1)
-				game.stage.remove(tablet)
+				party.remove(tablet)
 
 				ghosts.forEach(ghost => {
 					// Исходные анимации привидения.
@@ -253,7 +313,7 @@ export default async function main () {
 						ghost.isBlue = false
 						ghost.start(ghost.animation.name)
 					})
-				}, 5000)
+				}, 50000)
 
 				break
 			}

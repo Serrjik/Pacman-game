@@ -9,6 +9,9 @@ export default class Group extends DisplayObject {
 		super(props)
 
 		this.container = new Set
+		// Смещение группы элементов относительно верхнего левого угла.
+		this.offsetX = 0
+		this.offsetY = 0
 	}
 
 	// Геттер возвращает контейнер объектов в виде массива.
@@ -35,6 +38,9 @@ export default class Group extends DisplayObject {
 	}
 
 	draw (context) {
+		context.save()
+		context.translate(this.offsetX, this.offsetY)
 		this.items.forEach(x => x.draw(context))
+		context.restore()
 	}
 }
