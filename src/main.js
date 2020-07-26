@@ -313,7 +313,7 @@ export default async function main () {
 						ghost.isBlue = false
 						ghost.start(ghost.animation.name)
 					})
-				}, 50000)
+				}, 5000)
 
 				break
 			}
